@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Secure Payment</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; background: #f4f4f9; }
+        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        #qrcode { margin-bottom: 20px; border: 10px solid white; padding: 10px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .addr { font-size: 14px; color: #333; margin: 10px; word-break: break-all; max-width: 80%; }
+        button { background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:active { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 id="coinName">Loading...</h2>
+    <div id="qrcode"></div>
+    <div class="addr" id="walletAddr"></div>
+    <button onclick="copyAddress()">Click to Copy Address</button>
+</div>
+
+<script>
+    // DATA: This is where you store User 1's wallets
+    const wallets = {
+        "btc": "bc1q6pgmdvm5qa2e5u8z4ra6xcshfs3tmth246fwsa",
+        "eth": "0x5B00BA6d8131cF0EfdDF08e2AcBf855f5ac54D93",
+        "sol": "2W7Zz5nCgSnntRb1aYtZASiAJ2kwdGBTsQMgmMNtMfL2",
+        "usdc": "0x5B00BA6d8131cF0EfdDF08e2AcBf855f5ac54D93"
+    };
+
+    // Get the coin from the URL (e.g., ?coin=btc)
+    const urlParams = new URLSearchParams(window.location.search);
+    const coin = urlParams.get('coin') || 'btc'; 
+    const address = wallets[coin];
+
+    if (address) {
+        document.getElementById('coinName').innerText = coin.toUpperCase() + " Wallet";
+        document.getElementById('walletAddr').innerText = address;
+        // Generate QR Code
+        new QRCode(document.getElementById("qrcode"), { text: address, width: 200, height: 200 });
+    } else {
+        document.body.innerHTML = "<h1>Wallet Not Found</h1>";
+    }
+
+    function copyAddress() {
+        navigator.clipboard.writeText(address);
+        alert("Address Copied!");
+    }
+</script>
+</body>
+</html>
