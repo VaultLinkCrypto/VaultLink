@@ -2,28 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VaultLink Admin - Real-Time Clicks</title>
+    <title>VaultLink Admin - Live Traffic</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
-        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #007bff; color: white; position: sticky; top: 0; }
-        tr:hover { background: #f1f1f1; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .page_view { background: #e3f2fd; color: #0d47a1; }
-        .copy_click { background: #e8f5e9; color: #1b5e20; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 30px; background: #f0f2f5; color: #1c1e21; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        th { background: #007bff; color: white; padding: 15px; text-align: left; font-size: 13px; text-transform: uppercase; }
+        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; }
+        tr:last-child td { border-bottom: none; }
+        .badge { padding: 5px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .page_view { background: #e7f3ff; color: #1877f2; }
+        .copy_click { background: #e7f4e4; color: #25a115; }
+        .timestamp { color: #65676b; font-family: monospace; }
     </style>
 </head>
 <body>
 
-    <h2>VaultLink Live Analytics</h2>
+    <div class="header">
+        <h2>Live Analytics Dashboard</h2>
+        <div id="status">Connecting to VaultLink...</div>
+    </div>
+
     <table>
         <thead>
             <tr>
-                <th>Event</th>
-                <th>IP Address</th>
+                <th>Event Type</th>
+                <th>Coin</th>
                 <th>Location</th>
-                <th>Timestamp</th>
+                <th>IP Address</th>
+                <th>Timestamp (Local)</th>
             </tr>
         </thead>
         <tbody id="data-table">
@@ -34,28 +41,44 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
+        // Use your existing configuration
         const firebaseConfig = {
+            apiKey: "AIzaSyAH3Ya_RPF3H5ZCI2pjPKAn5vqfPQF7BOo",
+            authDomain: "vaultlinkcrypto.firebaseapp.com",
             databaseURL: "https://vaultlinkcrypto-default-rtdb.firebaseio.com",
-            // PASTE YOUR FULL CONFIG HERE (apiKey, projectId, etc.)
+            projectId: "vaultlinkcrypto",
+            storageBucket: "vaultlinkcrypto.firebasestorage.app",
+            messagingSenderId: "197889276270",
+            appId: "1:197889276270:web:e74637ae83144aae5fa97f"
         };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const tableBody = document.getElementById('data-table');
 
-        // Query the database
-        const clicksRef = db.ref('clicks').limitToLast(50); // Get last 50 clicks
+        // Reference to your 'clicks' folder
+        const clicksRef = db.ref('clicks').limitToLast(100);
 
         clicksRef.on('child_added', (snapshot) => {
-            const val = snapshot.val();
-            const table = document.getElementById('data-table');
+            const data = snapshot.val();
+            document.getElementById('status').innerText = "Live Update Received";
 
-            // Create new row
-            const row = table.insertRow(0); // Add to the top
-            
+            // Format the ISO Timestamp into MM/DD/YYYY HH:MM:SS
+            const dateObj = new Date(data.timestamp);
+            const formattedDate = dateObj.toLocaleDateString('en-US', { 
+                month: '2-digit', day: '2-digit', year: 'numeric' 
+            });
+            const formattedTime = dateObj.toLocaleTimeString('en-US', { 
+                hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' 
+            });
+
+            const row = tableBody.insertRow(0); // Add newest entries to the top
             row.innerHTML = `
-                <td><span class="badge ${val.event_type || val.event}">${val.event_type || val.event}</span></td>
-                <td>${val.ip_address || val.ip}</td>
-                <td>${val.location}</td>
-                <td>${val.date} ${val.time}</td>
+                <td><span class="badge ${data.event}">${data.event.replace('_', ' ')}</span></td>
+                <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
+                <td>${data.location || 'Unknown'}</td>
+                <td><code>${data.ip || '0.0.0.0'}</code></td>
+                <td class="timestamp">${formattedDate} ${formattedTime}</td>
             `;
         });
     </script>
