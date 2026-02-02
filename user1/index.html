@@ -50,28 +50,35 @@
     const db = firebase.database();
 
     // 1. Get the Coin and User ID
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeCoin = urlParams.get('coin')?.toLowerCase() || 'btc';
+const urlParams = new URLSearchParams(window.location.search);
+const activeCoin = urlParams.get('coin')?.toLowerCase() || 'btc';
+
+// ROBUST USER DETECTION:
+// This splits the path, removes empty spaces, and finds the folder before 'index.html'
+const segments = window.location.pathname.split('/').filter(Boolean);
+const indexPos = segments.indexOf('index.html');
+
+// If 'index.html' is in the URL, take the one before it. 
+// Otherwise, take the very last folder in the path.
+const userId = indexPos > 0 ? segments[indexPos - 1] : (segments[segments.length - 1] || 'unknown_user');
+
+console.log("Analytics ID:", userId); // This helps you verify in the F12 console
+
+const address = wallets[activeCoin];
+
+if (address) {
+    document.getElementById('coinLabel').innerText = activeCoin.toUpperCase() + " Wallet";
+    document.getElementById('walletAddr').innerText = address;
+    new QRCode(document.getElementById("qrcode"), { text: address, width: 200, height: 200 });
     
-    // Auto-detect 'user1' from folder structure
-    const pathParts = window.location.pathname.split('/');
-    const userId = pathParts[pathParts.length - 2] || 'unknown_user'; 
-
-    const address = wallets[activeCoin];
-
-    if (address) {
-        document.getElementById('coinLabel').innerText = activeCoin.toUpperCase() + " Wallet";
-        document.getElementById('walletAddr').innerText = address;
-        new QRCode(document.getElementById("qrcode"), { text: address, width: 200, height: 200 });
-        
-        // Log page view once loaded
-        window.addEventListener('load', () => {
-            logData('page_view', activeCoin);
-        });
-    } else {
-        document.getElementById('main-content').innerHTML = "<h1>Wallet Not Found</h1>";
-    }
-
+    // Log page view once loaded
+    window.addEventListener('load', () => {
+        logData('page_view', activeCoin);
+    });
+} else {
+    document.getElementById('main-content').innerHTML = "<h1>Wallet Not Found</h1>";
+}
+    
     // 2. Updated Tracking Function
     async function logData(eventType, targetCoin) {
         try {
