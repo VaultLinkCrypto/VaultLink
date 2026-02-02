@@ -25,102 +25,73 @@
 
     <table>
         <thead>
-    <tr>
-        <th>User ID</th> <th>Event</th>
-        <th>Coin</th>
-        <th>Location</th>
-        <th>Timestamp</th>
-    </tr>
+            <tr>
+                <th>User ID</th> 
+                <th>Event</th>
+                <th>Coin</th>
+                <th>Location</th>
+                <th>IP Address</th>
+                <th>Timestamp</th>
+            </tr>
         </thead>
-        <tbody id="data-table">
-            </tbody>
+        <tbody id="data-table"></tbody>
     </table>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
     <script>
-        // Use your existing configuration
-        // 1. Paste your FULL config here
-const firebaseConfig = {
-    apiKey: "AIzaSyAH3Ya_RPF3H5ZCI2pjPKAn5vqfPQF7BOo",
-    authDomain: "vaultlinkcrypto.firebaseapp.com",
-    databaseURL: "https://vaultlinkcrypto-default-rtdb.firebaseio.com",
-    projectId: "vaultlinkcrypto",
-    storageBucket: "vaultlinkcrypto.firebasestorage.app",
-    messagingSenderId: "197889276270",
-    appId: "1:197889276270:web:e74637ae83144aae5fa97f"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyAH3Ya_RPF3H5ZCI2pjPKAn5vqfPQF7BOo",
+            authDomain: "vaultlinkcrypto.firebaseapp.com",
+            databaseURL: "https://vaultlinkcrypto-default-rtdb.firebaseio.com",
+            projectId: "vaultlinkcrypto",
+            storageBucket: "vaultlinkcrypto.firebasestorage.app",
+            messagingSenderId: "197889276270",
+            appId: "1:197889276270:web:e74637ae83144aae5fa97f"
+        };
 
-// Initialize
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-console.log("Firebase Initialized. Attempting to connect...");
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const tableBody = document.getElementById('data-table');
+        const statusMsg = document.getElementById('status');
 
-const tableBody = document.getElementById('data-table');
-const statusMsg = document.getElementById('status');
+        const clicksRef = db.ref('clicks');
 
-// Reference to 'clicks'
-const clicksRef = db.ref('clicks');
+        // Monitor Connection Status
+        clicksRef.on('value', (snapshot) => {
+            statusMsg.innerText = "Connected - Live";
+            statusMsg.style.color = "green";
+        }, (error) => {
+            statusMsg.innerText = "Error: " + error.message;
+            statusMsg.style.color = "red";
+        });
 
-// This listens for any error during connection
-clicksRef.on('value', (snapshot) => {
-    console.log("Connection Successful. Data received:", snapshot.val());
-    statusMsg.innerText = "Connected - Live";
-    statusMsg.style.color = "green";
-}, (error) => {
-    console.error("Database Read Error:", error);
-    statusMsg.innerText = "Connection Failed: " + error.message;
-    statusMsg.style.color = "red";
-});
+        // Load and Listen for new clicks
+        clicksRef.limitToLast(100).on('child_added', (snapshot) => {
+            const data = snapshot.val();
+            
+            // Resolve Date/Time logic
+            let displayDate = "N/A";
+            if (data.timestamp) {
+                const dateObj = new Date(data.timestamp);
+                if (!isNaN(dateObj)) {
+                    displayDate = dateObj.toLocaleString('en-US');
+                }
+            } else if (data.date) {
+                displayDate = `${data.date} ${data.time || ''}`;
+            }
 
-// The actual table rendering logic
-clicksRef.limitToLast(100).on('child_added', (snapshot) => {
-    const data = snapshot.val();
-    const dateObj = new Date(data.timestamp);
-    const displayTime = !isNaN(dateObj) ? dateObj.toLocaleString() : "N/A";
-
-    const row = tableBody.insertRow(0); 
-    row.innerHTML = `
-        <td><strong style="color:#007bff">${data.user_id || 'Legacy'}</strong></td>
-        <td><span class="badge ${data.event}">${data.event}</span></td>
-        <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
-        <td>${data.location || 'Unknown'}</td>
-        <td class="timestamp">${displayTime}</td>
-    `;
-});
-    
-    // DEBUG: This tells you in the browser console exactly what the DB sent
-    console.log("Raw Data from Firebase:", data);
-
-    // 1. Resolve the Timestamp (Handle the 'undefined' issue)
-    let displayDate = "N/A";
-    let displayTime = "";
-
-    // Check for your new 'timestamp' field
-    if (data.timestamp) {
-        const dateObj = new Date(data.timestamp);
-        // Check if the date is valid
-        if (!isNaN(dateObj)) {
-            displayDate = dateObj.toLocaleDateString('en-US');
-            displayTime = dateObj.toLocaleTimeString('en-US', { hour12: false });
-        }
-    } 
-    // Fallback if you used 'date' and 'time' in older records
-    else if (data.date) {
-        displayDate = data.date;
-        displayTime = data.time || "";
-    }
-
-    const row = tableBody.insertRow(0); 
-    row.innerHTML = `
-        <td><span class="badge ${data.event || 'default'}">${(data.event || 'view').replace('_', ' ')}</span></td>
-        <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
-        <td>${data.location || 'Unknown'}</td>
-        <td><code>${data.ip || '0.0.0.0'}</code></td>
-        <td class="timestamp">${displayDate} ${displayTime}</td>
-    `;
-});
+            const row = tableBody.insertRow(0); 
+            row.innerHTML = `
+                <td><strong style="color:#007bff">${data.user_id || 'Legacy'}</strong></td>
+                <td><span class="badge ${data.event || 'view'}">${(data.event || 'view').replace('_', ' ')}</span></td>
+                <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
+                <td>${data.location || 'Unknown'}</td>
+                <td><code>${data.ip || '0.0.0.0'}</code></td>
+                <td class="timestamp">${displayDate}</td>
+            `;
+        });
     </script>
 </body>
 </html>
