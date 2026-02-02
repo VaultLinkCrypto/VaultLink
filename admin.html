@@ -59,28 +59,40 @@
         // Reference to your 'clicks' folder
         const clicksRef = db.ref('clicks').limitToLast(100);
 
-        clicksRef.on('child_added', (snapshot) => {
-            const data = snapshot.val();
-            document.getElementById('status').innerText = "Live Update Received";
+    clicksRef.on('child_added', (snapshot) => {
+        const data = snapshot.val();
+    
+    // DEBUG: This tells you in the browser console exactly what the DB sent
+    console.log("Raw Data from Firebase:", data);
 
-            // Format the ISO Timestamp into MM/DD/YYYY HH:MM:SS
-            const dateObj = new Date(data.timestamp);
-            const formattedDate = dateObj.toLocaleDateString('en-US', { 
-                month: '2-digit', day: '2-digit', year: 'numeric' 
-            });
-            const formattedTime = dateObj.toLocaleTimeString('en-US', { 
-                hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' 
-            });
+    // 1. Resolve the Timestamp (Handle the 'undefined' issue)
+    let displayDate = "N/A";
+    let displayTime = "";
 
-            const row = tableBody.insertRow(0); // Add newest entries to the top
-            row.innerHTML = `
-                <td><span class="badge ${data.event}">${data.event.replace('_', ' ')}</span></td>
-                <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
-                <td>${data.location || 'Unknown'}</td>
-                <td><code>${data.ip || '0.0.0.0'}</code></td>
-                <td class="timestamp">${formattedDate} ${formattedTime}</td>
-            `;
-        });
+    // Check for your new 'timestamp' field
+    if (data.timestamp) {
+        const dateObj = new Date(data.timestamp);
+        // Check if the date is valid
+        if (!isNaN(dateObj)) {
+            displayDate = dateObj.toLocaleDateString('en-US');
+            displayTime = dateObj.toLocaleTimeString('en-US', { hour12: false });
+        }
+    } 
+    // Fallback if you used 'date' and 'time' in older records
+    else if (data.date) {
+        displayDate = data.date;
+        displayTime = data.time || "";
+    }
+
+    const row = tableBody.insertRow(0); 
+    row.innerHTML = `
+        <td><span class="badge ${data.event || 'default'}">${(data.event || 'view').replace('_', ' ')}</span></td>
+        <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
+        <td>${data.location || 'Unknown'}</td>
+        <td><code>${data.ip || '0.0.0.0'}</code></td>
+        <td class="timestamp">${displayDate} ${displayTime}</td>
+    `;
+});
     </script>
 </body>
 </html>
