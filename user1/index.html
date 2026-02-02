@@ -76,11 +76,11 @@
             const geo = await res.json();
             
             db.ref('clicks').push({
-                event: type,
-                coin: coinName || 'none',
-                location: `${geo.city}, ${geo.country_name}`,
-                ip: geo.ip,
-                timestamp: new Date().toLocaleString()
+              event: type,
+              coin: coin || 'none',
+              location: `${geo.city}, ${geo.country_name}`,
+              ip: geo.ip,
+              timestamp: new Date().toISOString() // This saves YYYY-MM-DDTHH:MM:SS.SSSZ
             });
             console.log("Data logged: " + type);
         } catch (e) { 
