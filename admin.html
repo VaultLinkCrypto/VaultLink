@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VaultLink Admin - Real-Time Clicks</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #007bff; color: white; position: sticky; top: 0; }
+        tr:hover { background: #f1f1f1; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .page_view { background: #e3f2fd; color: #0d47a1; }
+        .copy_click { background: #e8f5e9; color: #1b5e20; }
+    </style>
+</head>
+<body>
+
+    <h2>VaultLink Live Analytics</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Event</th>
+                <th>IP Address</th>
+                <th>Location</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody id="data-table">
+            </tbody>
+    </table>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            databaseURL: "https://vaultlinkcrypto-default-rtdb.firebaseio.com",
+            // PASTE YOUR FULL CONFIG HERE (apiKey, projectId, etc.)
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Query the database
+        const clicksRef = db.ref('clicks').limitToLast(50); // Get last 50 clicks
+
+        clicksRef.on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            const table = document.getElementById('data-table');
+
+            // Create new row
+            const row = table.insertRow(0); // Add to the top
+            
+            row.innerHTML = `
+                <td><span class="badge ${val.event_type || val.event}">${val.event_type || val.event}</span></td>
+                <td>${val.ip_address || val.ip}</td>
+                <td>${val.location}</td>
+                <td>${val.date} ${val.time}</td>
+            `;
+        });
+    </script>
+</body>
+</html>
