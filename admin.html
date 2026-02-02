@@ -25,13 +25,12 @@
 
     <table>
         <thead>
-            <tr>
-                <th>Event Type</th>
-                <th>Coin</th>
-                <th>Location</th>
-                <th>IP Address</th>
-                <th>Timestamp (Local)</th>
-            </tr>
+    <tr>
+        <th>User ID</th> <th>Event</th>
+        <th>Coin</th>
+        <th>Location</th>
+        <th>Timestamp</th>
+    </tr>
         </thead>
         <tbody id="data-table">
             </tbody>
@@ -60,7 +59,20 @@
         const clicksRef = db.ref('clicks').limitToLast(100);
 
     clicksRef.on('child_added', (snapshot) => {
-        const data = snapshot.val();
+    const data = snapshot.val();
+    
+    const dateObj = new Date(data.timestamp);
+    const displayTime = !isNaN(dateObj) ? dateObj.toLocaleString() : "N/A";
+
+    const row = tableBody.insertRow(0); 
+    row.innerHTML = `
+        <td><strong style="color:#007bff">${data.user_id || 'Legacy'}</strong></td>
+        <td><span class="badge ${data.event}">${data.event.replace('_', ' ')}</span></td>
+        <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
+        <td>${data.location || 'Unknown'}</td>
+        <td class="timestamp">${displayTime}</td>
+    `;
+});
     
     // DEBUG: This tells you in the browser console exactly what the DB sent
     console.log("Raw Data from Firebase:", data);
