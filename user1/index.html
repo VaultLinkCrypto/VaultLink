@@ -53,40 +53,41 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 3. Page Logic
-    const urlParams = new URLSearchParams(window.location.search);
-    const coin = urlParams.get('coin')?.toLowerCase() || 'btc';
-    const address = wallets[coin];
+    // 3. Page Logic - Smart User Detection
+const urlParams = new URLSearchParams(window.location.search);
+const coin = urlParams.get('coin')?.toLowerCase() || 'btc';
 
-    if (address) {
-        document.getElementById('coinName').innerText = coin.toUpperCase() + " Wallet";
-        document.getElementById('walletAddr').innerText = address;
-        // Generate QR Code
-        new QRCode(document.getElementById("qrcode"), { text: address, width: 200, height: 200 });
-        // Log initial view
-        window.onload = () => { logData('page_view', coin); };
-    } else {
-        document.getElementById('main-content').innerHTML = "<h1>Wallet Not Found</h1>";
-    }
+// This logic looks at your URL path and grabs the folder name (e.g., 'user1')
+const pathParts = window.location.pathname.split('/');
+const autoUser = pathParts[pathParts.length - 2] || 'unknown_user'; 
 
-    // 4. Tracking Function
-    async function logData(type, coinName) {
-        try {
-            const res = await fetch('https://ipapi.co/json/');
-            const geo = await res.json();
-            
-            db.ref('clicks').push({
-              event: type,
-              coin: coin || 'none',
-              location: `${geo.city}, ${geo.country_name}`,
-              ip: geo.ip,
-              timestamp: new Date().toISOString() // This saves YYYY-MM-DDTHH:MM:SS.SSSZ
-            });
-            console.log("Data logged: " + type);
-        } catch (e) { 
-            console.error("Tracking error:", e); 
-        }
-    }
+const address = wallets[coin];
+
+if (address) {
+    document.getElementById('coinName').innerText = coin.toUpperCase() + " Wallet";
+    document.getElementById('walletAddr').innerText = address;
+    new QRCode(document.getElementById("qrcode"), { text: address, width: 200, height: 200 });
+    
+    // Log initial view
+    window.onload = () => { logData('page_view', coin); };
+}
+
+// 4. Updated Tracking Function
+async function logData(type, coinName) {
+    try {
+        const res = await fetch('https://ipapi.co/json/');
+        const geo = await res.json();
+        
+        db.ref('clicks').push({
+          user_id: autoUser,    // Automatically logs 'user1' from your URL
+          event: type,
+          coin: coinName || 'none',
+          location: `${geo.city}, ${geo.country_name}`,
+          ip: geo.ip,
+          timestamp: new Date().toISOString()
+        });
+    } catch (e) { console.error("Tracking error:", e); }
+}
 
     // 5. Action Function
     function copyAddress() {
