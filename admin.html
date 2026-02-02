@@ -41,33 +41,49 @@
 
     <script>
         // Use your existing configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAH3Ya_RPF3H5ZCI2pjPKAn5vqfPQF7BOo",
-            authDomain: "vaultlinkcrypto.firebaseapp.com",
-            databaseURL: "https://vaultlinkcrypto-default-rtdb.firebaseio.com",
-            projectId: "vaultlinkcrypto",
-            storageBucket: "vaultlinkcrypto.firebasestorage.app",
-            messagingSenderId: "197889276270",
-            appId: "1:197889276270:web:e74637ae83144aae5fa97f"
-        };
+        // 1. Paste your FULL config here
+const firebaseConfig = {
+    apiKey: "AIzaSyAH3Ya_RPF3H5ZCI2pjPKAn5vqfPQF7BOo",
+    authDomain: "vaultlinkcrypto.firebaseapp.com",
+    databaseURL: "https://vaultlinkcrypto-default-rtdb.firebaseio.com",
+    projectId: "vaultlinkcrypto",
+    storageBucket: "vaultlinkcrypto.firebasestorage.app",
+    messagingSenderId: "197889276270",
+    appId: "1:197889276270:web:e74637ae83144aae5fa97f"
+};
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const tableBody = document.getElementById('data-table');
+// Initialize
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+console.log("Firebase Initialized. Attempting to connect...");
 
-        // Reference to your 'clicks' folder
-        const clicksRef = db.ref('clicks').limitToLast(100);
+const tableBody = document.getElementById('data-table');
+const statusMsg = document.getElementById('status');
 
-    clicksRef.on('child_added', (snapshot) => {
+// Reference to 'clicks'
+const clicksRef = db.ref('clicks');
+
+// This listens for any error during connection
+clicksRef.on('value', (snapshot) => {
+    console.log("Connection Successful. Data received:", snapshot.val());
+    statusMsg.innerText = "Connected - Live";
+    statusMsg.style.color = "green";
+}, (error) => {
+    console.error("Database Read Error:", error);
+    statusMsg.innerText = "Connection Failed: " + error.message;
+    statusMsg.style.color = "red";
+});
+
+// The actual table rendering logic
+clicksRef.limitToLast(100).on('child_added', (snapshot) => {
     const data = snapshot.val();
-    
     const dateObj = new Date(data.timestamp);
     const displayTime = !isNaN(dateObj) ? dateObj.toLocaleString() : "N/A";
 
     const row = tableBody.insertRow(0); 
     row.innerHTML = `
         <td><strong style="color:#007bff">${data.user_id || 'Legacy'}</strong></td>
-        <td><span class="badge ${data.event}">${data.event.replace('_', ' ')}</span></td>
+        <td><span class="badge ${data.event}">${data.event}</span></td>
         <td><strong>${(data.coin || 'N/A').toUpperCase()}</strong></td>
         <td>${data.location || 'Unknown'}</td>
         <td class="timestamp">${displayTime}</td>
