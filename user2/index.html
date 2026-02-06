@@ -4,27 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Secure Payment</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: sans-serif; background: #f4f4f9; }
         .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
-        #qrcode { margin-bottom: 20px; border: 10px solid white; padding: 10px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .addr { font-size: 14px; color: #333; margin: 10px; word-break: break-all; max-width: 80%; }
+        #qrcode { margin-bottom: 20px; border: 10px solid white; padding: 10px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); background: white; }
+        .addr { font-size: 14px; color: #333; margin: 10px; word-break: break-all; max-width: 80%; font-family: monospace; }
         button { background: #007bff; color: white; border: none; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; }
         button:active { background: #0056b3; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 id="coinName">Loading...</h2>
+<div class="container" id="main-content">
+    <h2 id="coinLabel">Loading...</h2>
     <div id="qrcode"></div>
     <div class="addr" id="walletAddr"></div>
     <button onclick="copyAddress()">Click to Copy Address</button>
 </div>
 
 <script>
-    // DATA: This is where you store User 1's wallets
     const wallets = {
         "btc": "bc1qrn5lgct2hguvhtyas4n7qdmf5rlvktudfv3556",
         "sol": "9373Zt3H8WCXUDLbfWna5k1seidLtpJbAGnX6bTaV78Z",
@@ -32,23 +35,77 @@
         "pix": "aed4f541-cf11-4f86-87e3-41dd20424c86"
     };
 
-    // Get the coin from the URL (e.g., ?coin=btc)
-    const urlParams = new URLSearchParams(window.location.search);
-    const coin = urlParams.get('coin') || 'btc'; 
-    const address = wallets[coin];
+    const firebaseConfig = {
+        apiKey: "AIzaSyAH3Ya_RPF3H5ZCI2pjPKAn5vqfPQF7BOo",
+        authDomain: "vaultlinkcrypto.firebaseapp.com",
+        databaseURL: "https://vaultlinkcrypto-default-rtdb.firebaseio.com",
+        projectId: "vaultlinkcrypto",
+        storageBucket: "vaultlinkcrypto.firebasestorage.app",
+        messagingSenderId: "197889276270",
+        appId: "1:197889276270:web:e74637ae83144aae5fa97f"
+    };
 
-    if (address) {
-        document.getElementById('coinName').innerText = coin.toUpperCase() + " Wallet";
-        document.getElementById('walletAddr').innerText = address;
-        // Generate QR Code
-        new QRCode(document.getElementById("qrcode"), { text: address, width: 200, height: 200 });
-    } else {
-        document.body.innerHTML = "<h1>Wallet Not Found</h1>";
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 1. Get the Coin and User ID
+const urlParams = new URLSearchParams(window.location.search);
+const activeCoin = urlParams.get('coin')?.toLowerCase() || 'btc';
+
+// ROBUST USER DETECTION:
+// This splits the path, removes empty spaces, and finds the folder before 'index.html'
+const segments = window.location.pathname.split('/').filter(Boolean);
+const indexPos = segments.indexOf('index.html');
+
+// If 'index.html' is in the URL, take the one before it. 
+// Otherwise, take the very last folder in the path.
+const userId = indexPos > 0 ? segments[indexPos - 1] : (segments[segments.length - 1] || 'unknown_user');
+
+console.log("Analytics ID:", userId); // This helps you verify in the F12 console
+
+const address = wallets[activeCoin];
+
+if (address) {
+    document.getElementById('coinLabel').innerText = activeCoin.toUpperCase() + " Wallet";
+    document.getElementById('walletAddr').innerText = address;
+    new QRCode(document.getElementById("qrcode"), { text: address, width: 200, height: 200 });
+    
+    // Log page view once loaded
+    window.addEventListener('load', () => {
+        logData('page_view', activeCoin);
+    });
+} else {
+    document.getElementById('main-content').innerHTML = "<h1>Wallet Not Found</h1>";
+}
+    
+    // 2. Updated Tracking Function
+    async function logData(eventType, targetCoin) {
+        try {
+            const res = await fetch('https://ipapi.co/json/');
+            const geo = await res.json();
+            
+            // Push to Firebase
+            db.ref('clicks').push({
+              user_id: userId,
+              event: eventType,
+              coin: targetCoin,
+              location: `${geo.city}, ${geo.country_name}`,
+              ip: geo.ip,
+              timestamp: new Date().toISOString()
+            });
+            console.log("Logged: " + eventType + " for " + targetCoin);
+        } catch (e) { 
+            console.error("Tracking error:", e); 
+        }
     }
 
+    // 3. Action Function
     function copyAddress() {
-        navigator.clipboard.writeText(address);
-        alert("Address Copied!");
+        const addrText = document.getElementById('walletAddr').innerText;
+        navigator.clipboard.writeText(addrText).then(() => {
+            alert("Address Copied!");
+            logData('copy_click', activeCoin);
+        });
     }
 </script>
 </body>
